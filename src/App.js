@@ -10,6 +10,12 @@ function App() {
   const [backendMessage, setBackendMessage] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 新增數學題目相關狀態
+  const [mathQuestion, setMathQuestion] = useState(null);
+  const [loadingQuestion, setLoadingQuestion] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState('');
+  const [answerResult, setAnswerResult] = useState('');
+
   const handleButtonClick = () => {
     setMessage('按鈕被點擊了！前端運作正常 🎉');
   };
@@ -38,6 +44,37 @@ function App() {
       setBackendMessage('連接失敗: ' + error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 獲取隨機數學題目
+  const getRandomMathQuestion = async () => {
+    setLoadingQuestion(true);
+    setSelectedAnswer('');
+    setAnswerResult('');
+    
+    try {
+      const response = await fetch('http://localhost:8080/api/math/random');
+      if (!response.ok) {
+        throw new Error('無法獲取題目');
+      }
+      const data = await response.json();
+      setMathQuestion(data);
+    } catch (error) {
+      console.error('獲取題目失敗:', error);
+      setMathQuestion(null);
+    } finally {
+      setLoadingQuestion(false);
+    }
+  };
+  
+  // 處理答案選擇
+  const handleAnswerSelect = (answer) => {
+    setSelectedAnswer(answer);
+    if (mathQuestion && answer === mathQuestion.correctAnswer) {
+      setAnswerResult('正確！');
+    } else {
+      setAnswerResult('錯誤！正確答案是 ' + mathQuestion.correctAnswer);
     }
   };
 
@@ -83,12 +120,29 @@ function App() {
               border: 'none',
               borderRadius: '5px',
               cursor: loading ? 'not-allowed' : 'pointer',
-              color: 'white'
+              color: 'white',
+              marginRight: '10px'
             }}
           >
             {loading ? '連接中...' : '測試後端連接'}
           </button>
           
+          {/* 新增獲取隨機數學題目按鈕 */}
+          <button 
+            onClick={getRandomMathQuestion} 
+            disabled={loadingQuestion}
+            style={{
+              padding: '10px 20px',
+              fontSize: '16px',
+              backgroundColor: loadingQuestion ? '#ccc' : '#ff9800',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: loadingQuestion ? 'not-allowed' : 'pointer',
+              color: 'white'
+            }}
+          >
+            {loadingQuestion ? '獲取中...' : '隨機數學題目'}
+          </button>
           {/* 時間顯示 */}
           {currentTime && (
             <p style={{ marginTop: '10px', fontSize: '18px', color: '#61dafb' }}>
@@ -107,6 +161,57 @@ function App() {
               color: '#282c34'
             }}>
               <strong>🚀 後端回應：</strong> {backendMessage}
+    </div>
+          )}
+          
+          {/* 數學題目顯示 */}
+          {mathQuestion && (
+            <div style={{ 
+              marginTop: '20px', 
+              padding: '20px', 
+              backgroundColor: '#f8f9fa',
+              border: '2px solid #ff9800',
+              borderRadius: '10px',
+              color: '#282c34',
+              width: '80%',
+              maxWidth: '600px',
+              textAlign: 'left'
+            }}>
+              <h3 style={{ color: '#ff9800', marginTop: '0' }}>題目 #{mathQuestion.questionNumber}</h3>
+              <p style={{ fontSize: '18px', marginBottom: '20px' }}>{mathQuestion.questionText}</p>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {['A', 'B', 'C', 'D'].map((option) => (
+                  <button 
+                    key={option}
+                    onClick={() => handleAnswerSelect(option)}
+                    disabled={!!selectedAnswer}
+                    style={{
+                      padding: '10px',
+                      textAlign: 'left',
+                      backgroundColor: selectedAnswer === option 
+                        ? (option === mathQuestion.correctAnswer ? '#4CAF50' : '#f44336') 
+                        : '#fff',
+                      color: selectedAnswer === option ? 'white' : '#282c34',
+                      border: '1px solid #ddd',
+                      borderRadius: '5px',
+                      cursor: selectedAnswer ? 'default' : 'pointer'
+                    }}
+                  >
+                    {option}. {mathQuestion[`option${option}`]}
+                  </button>
+                ))}
+              </div>
+              
+              {answerResult && (
+                <p style={{ 
+                  marginTop: '15px', 
+                  fontWeight: 'bold',
+                  color: answerResult.startsWith('正確') ? '#4CAF50' : '#f44336'
+                }}>
+                  {answerResult}
+                </p>
+              )}
             </div>
           )}
         </div>
